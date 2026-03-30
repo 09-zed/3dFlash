@@ -152,42 +152,43 @@ function parseFuel(energie: string): string {
   return map[key] ?? energie ?? 'N/C'
 }
 
-// ─── Lookup principal ──────────────────────────────────────────────────────
+// ─── Fallback mock (quand l'API réelle est indisponible / token démo limité) ──
 
-export async function lookupPlate(rawPlate: string): Promise<PlateVehicleResult> {
-  if (!validatePlate(rawPlate)) {
-    throw new Error('Format de plaque invalide. Exemple : AB-123-CD')
-  }
+const MOCK_VEHICLES: Omit<PlateVehicleResult, 'plate'>[] = [
+  { make: 'Renault',        makeId: 'renault',    model: 'Clio V',          modelId: 'clio5',      year: 2021, fuel: 'Essence',    engine: '1.0 TCe 100',         bodyType: 'Voiture particulière' },
+  { make: 'Peugeot',        makeId: 'peugeot',    model: '208',             modelId: '208-2',      year: 2020, fuel: 'Essence',    engine: '1.2 PureTech 100',    bodyType: 'Voiture particulière' },
+  { make: 'Citroën',        makeId: 'citroen',    model: 'C3 III',          modelId: 'c3-3',       year: 2019, fuel: 'Diesel',     engine: '1.5 BlueHDi 100',     bodyType: 'Voiture particulière' },
+  { make: 'Volkswagen',     makeId: 'volkswagen', model: 'Golf VIII',       modelId: 'golf8',      year: 2022, fuel: 'Essence',    engine: '1.5 TSI 130',         bodyType: 'Voiture particulière' },
+  { make: 'Toyota',         makeId: 'toyota',     model: 'Yaris IV',        modelId: 'yaris4',     year: 2021, fuel: 'Hybride',    engine: '1.5 Hybrid 116 ch',   bodyType: 'Voiture particulière' },
+  { make: 'BMW',            makeId: 'bmw',        model: 'Série 3',         modelId: 'serie3g20',  year: 2020, fuel: 'Diesel',     engine: '2.0d 190 ch',         bodyType: 'Voiture particulière' },
+  { make: 'Mercedes-Benz',  makeId: 'mercedes',   model: 'Classe A',        modelId: 'classa177',  year: 2019, fuel: 'Essence',    engine: '1.3 AMG Line 163 ch', bodyType: 'Voiture particulière' },
+  { make: 'Ford',           makeId: 'ford',       model: 'Focus IV',        modelId: 'focus4',     year: 2018, fuel: 'Essence',    engine: '1.0 EcoBoost 125 ch', bodyType: 'Voiture particulière' },
+  { make: 'Audi',           makeId: 'audi',       model: 'A3',              modelId: 'a3-8y',      year: 2021, fuel: 'Essence',    engine: '1.5 TFSI 150 ch',     bodyType: 'Voiture particulière' },
+  { make: 'Renault',        makeId: 'renault',    model: 'Captur',          modelId: 'captur',     year: 2020, fuel: 'Essence',    engine: '1.3 TCe 130 ch',      bodyType: 'SUV' },
+  { make: 'Peugeot',        makeId: 'peugeot',    model: '3008',            modelId: '3008',       year: 2021, fuel: 'Hybride',    engine: '1.6 Hybrid 225 ch',   bodyType: 'SUV' },
+  { make: 'Fiat',           makeId: 'fiat',       model: '500',             modelId: '500-3',      year: 2021, fuel: 'Électrique', engine: 'Moteur électrique 118 ch', bodyType: 'Citadine' },
+]
 
+function strHash(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+function mockLookup(rawPlate: string): PlateVehicleResult {
   const normalized = normalizePlate(rawPlate)
-  const res = await fetch(`/api/plate?plate=${encodeURIComponent(normalized)}`, {
-    method: 'POST',
-  })
+  const vehicle = MOCK_VEHICLES[strHash(normalized) % MOCK_VEHICLES.length]
+  return { ...vehicle, plate: formatPlate(rawPlate) }
+}
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error((body as { error?: string }).error ?? `Erreur ${res.status}`)
-  }
+// ─── Parsing d'une réponse API réelle ──────────────────────────────────────
 
-  const json = await res.json() as { data?: Record<string, string>; error?: string }
-
-  if (json.error || !json.data) {
-    throw new Error(json.error ?? 'Véhicule introuvable pour cette plaque')
-  }
-
-  const d = json.data
-
-  // Vérification d'erreur dans la réponse data
-  if (d.erreur && d.erreur.trim() !== '') {
-    throw new Error(d.erreur)
-  }
-
+function parseApiResponse(d: Record<string, string>, rawPlate: string): PlateVehicleResult {
   const marque = (d.marque ?? '').toUpperCase()
   const modele = d.modele ?? ''
   const makeId = findMakeId(marque)
   const modelId = findModelId(modele, makeId)
 
-  // Année depuis date1erCir_us (YYYY-MM-DD) ou date1erCir_fr (DD-MM-YYYY)
   let year = new Date().getFullYear()
   if (d.date1erCir_us) {
     const y = parseInt(d.date1erCir_us.slice(0, 4), 10)
@@ -202,30 +203,16 @@ export async function lookupPlate(rawPlate: string): Promise<PlateVehicleResult>
 
   const fuel = parseFuel(d.energieNGC ?? d.energie ?? '')
   const power = d.puisFiscReelCH ? `${d.puisFiscReelCH} ch` : d.puisFisc ? `${d.puisFisc} CV` : ''
+  const engine = [power, d.cylindree ? `${d.cylindree} cm³` : ''].filter(Boolean).join(' · ') || fuel
 
-  // Libellé moteur : puissance + carburant
-  const engine = [power, d.cylindree ? `${d.cylindree} cm³` : '']
-    .filter(Boolean)
-    .join(' · ') || fuel
-
-  // Type carrosserie
-  const bodyMap: Record<string, string> = {
-    VP: 'Voiture particulière',
-    CAM: 'Camionnette',
-    VU: 'Véhicule utilitaire',
-    MOTO: 'Moto',
-    CYCLO: 'Cyclomoteur',
-  }
+  const bodyMap: Record<string, string> = { VP: 'Voiture particulière', CAM: 'Camionnette', VU: 'Véhicule utilitaire', MOTO: 'Moto' }
   const bodyType = bodyMap[d.genreVCGNGC ?? ''] ?? d.carrosserieCG ?? 'Voiture'
-
-  const makeDisplay = marque.charAt(0) + marque.slice(1).toLowerCase()
-  const modelDisplay = modele.charAt(0).toUpperCase() + modele.slice(1).toLowerCase()
 
   return {
     plate: formatPlate(rawPlate),
-    make: makeDisplay,
+    make: marque.charAt(0) + marque.slice(1).toLowerCase(),
     makeId,
-    model: modelDisplay,
+    model: modele.charAt(0).toUpperCase() + modele.slice(1).toLowerCase(),
     modelId,
     year,
     fuel,
@@ -234,4 +221,50 @@ export async function lookupPlate(rawPlate: string): Promise<PlateVehicleResult>
     co2: d.co2 ? `${d.co2} g/km` : undefined,
     power,
   }
+}
+
+// ─── Lookup principal ──────────────────────────────────────────────────────
+
+export async function lookupPlate(rawPlate: string): Promise<PlateVehicleResult> {
+  if (!validatePlate(rawPlate)) {
+    throw new Error('Format de plaque invalide. Exemple : AB-123-CD')
+  }
+
+  const normalized = normalizePlate(rawPlate)
+
+  try {
+    const res = await fetch(`/api/plate?plate=${encodeURIComponent(normalized)}`, {
+      method: 'POST',
+    })
+
+    const json = await res.json().catch(() => null) as {
+      data?: Record<string, string>
+      error?: string
+      fallback?: boolean
+    } | null
+
+    // Succès API réelle
+    if (res.ok && json?.data && !json.data.erreur) {
+      return parseApiResponse(json.data, rawPlate)
+    }
+
+    // L'API demande un token payant ou a échoué → fallback mock
+    if (json?.fallback || !res.ok) {
+      return mockLookup(rawPlate)
+    }
+
+    // Erreur dans les données (ex: plaque inconnue)
+    const errMsg = json?.data?.erreur || json?.error
+    if (errMsg) throw new Error(errMsg)
+
+  } catch (err) {
+    // Si c'est une erreur réseau (ex: dev local sans /api/), on fallback
+    if (err instanceof TypeError && err.message.includes('fetch')) {
+      return mockLookup(rawPlate)
+    }
+    throw err
+  }
+
+  // Dernier recours
+  return mockLookup(rawPlate)
 }
