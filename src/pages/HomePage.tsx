@@ -73,10 +73,8 @@ export default function HomePage() {
     const model = models.find(m => m.id === plateResult.modelId)
     if (make && model) {
       setSelectedVehicle({ make, model, year: plateResult.year })
-      navigate('/catalogue')
-    } else {
-      navigate('/catalogue')
     }
+    navigate('/mes-pieces')
   }
 
   return (

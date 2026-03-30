@@ -9,6 +9,7 @@ import CatalogPage from './pages/CatalogPage'
 import ProductPage from './pages/ProductPage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
+import VehiclePartsPage from './pages/VehiclePartsPage'
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -35,6 +36,7 @@ export default function App() {
               <Route path="/produit/:id" element={<ProductPage />} />
               <Route path="/panier" element={<CartPage />} />
               <Route path="/commande" element={<CheckoutPage />} />
+              <Route path="/mes-pieces" element={<VehiclePartsPage />} />
               <Route path="*" element={
                 <div className="flex flex-col items-center justify-center py-24 gap-4">
                   <p className="text-6xl font-extrabold text-gray-200">404</p>
