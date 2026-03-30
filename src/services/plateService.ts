@@ -1,6 +1,6 @@
 /**
  * Service de recherche par plaque d'immatriculation française.
- * Utilise l'API gratuite api.apiplaques.fr (mock en dev).
+ * Appelle /api/plate (fonction serverless Vercel) → apiplaqueimmatriculation.com
  */
 
 export interface PlateVehicleResult {
@@ -13,84 +13,225 @@ export interface PlateVehicleResult {
   fuel: string
   engine: string
   bodyType: string
-  color?: string
+  co2?: string
+  power?: string
 }
 
-// Base de données déterministe pour la démo
-// En production, remplacer par un appel réel à l'API SIV/UTAC
-const VEHICLE_DATABASE: PlateVehicleResult[] = [
-  { plate: '', make: 'Renault', makeId: 'renault', model: 'Clio V', modelId: 'clio5', year: 2021, fuel: 'Essence', engine: '1.0 TCe 100', bodyType: 'Berline' },
-  { plate: '', make: 'Peugeot', makeId: 'peugeot', model: '208 (2019+)', modelId: '208-2', year: 2020, fuel: 'Essence', engine: '1.2 PureTech 100', bodyType: 'Berline' },
-  { plate: '', make: 'Citroën', makeId: 'citroen', model: 'C3 III', modelId: 'c3-3', year: 2019, fuel: 'Diesel', engine: '1.5 BlueHDi 100', bodyType: 'Berline' },
-  { plate: '', make: 'Volkswagen', makeId: 'volkswagen', model: 'Golf VIII', modelId: 'golf8', year: 2022, fuel: 'Essence', engine: '1.5 TSI 130', bodyType: 'Berline' },
-  { plate: '', make: 'Toyota', makeId: 'toyota', model: 'Yaris IV', modelId: 'yaris4', year: 2021, fuel: 'Hybride', engine: '1.5 Hybrid 116', bodyType: 'Berline' },
-  { plate: '', make: 'BMW', makeId: 'bmw', model: 'Série 3 (G20)', modelId: 'serie3g20', year: 2020, fuel: 'Diesel', engine: '2.0d 190', bodyType: 'Berline' },
-  { plate: '', make: 'Mercedes-Benz', makeId: 'mercedes', model: 'Classe A (W177)', modelId: 'classa177', year: 2019, fuel: 'Essence', engine: '1.3 AMG Line 163', bodyType: 'Berline' },
-  { plate: '', make: 'Ford', makeId: 'ford', model: 'Focus IV', modelId: 'focus4', year: 2018, fuel: 'Essence', engine: '1.0 EcoBoost 125', bodyType: 'Berline' },
-  { plate: '', make: 'Opel', makeId: 'opel', model: 'Corsa F', modelId: 'corsa5', year: 2020, fuel: 'Diesel', engine: '1.5 CDTI 100', bodyType: 'Berline' },
-  { plate: '', make: 'Audi', makeId: 'audi', model: 'A3 (8Y)', modelId: 'a3-8y', year: 2021, fuel: 'Essence', engine: '1.5 TFSI 150', bodyType: 'Berline' },
-  { plate: '', make: 'Renault', makeId: 'renault', model: 'Mégane IV', modelId: 'megane4', year: 2018, fuel: 'Diesel', engine: '1.5 dCi 115', bodyType: 'Berline' },
-  { plate: '', make: 'Peugeot', makeId: 'peugeot', model: '308 (2021+)', modelId: '308-2', year: 2022, fuel: 'Essence', engine: '1.2 PureTech 130', bodyType: 'Berline' },
-  { plate: '', make: 'Citroën', makeId: 'citroen', model: 'C5 Aircross', modelId: 'c5air', year: 2019, fuel: 'Diesel', engine: '2.0 BlueHDi 180', bodyType: 'SUV' },
-  { plate: '', make: 'Renault', makeId: 'renault', model: 'Captur', modelId: 'captur', year: 2020, fuel: 'Essence', engine: '1.3 TCe 130', bodyType: 'SUV' },
-  { plate: '', make: 'Volkswagen', makeId: 'volkswagen', model: 'Tiguan', modelId: 'tiguan', year: 2019, fuel: 'Diesel', engine: '2.0 TDI 150', bodyType: 'SUV' },
-  { plate: '', make: 'Fiat', makeId: 'fiat', model: '500 III', modelId: '500-3', year: 2021, fuel: 'Électrique', engine: 'Moteur 118 ch', bodyType: 'Citadine' },
-  { plate: '', make: 'SEAT', makeId: 'seat', model: 'León IV', modelId: 'leon4', year: 2020, fuel: 'Essence', engine: '1.5 TSI 150', bodyType: 'Berline' },
-  { plate: '', make: 'Toyota', makeId: 'toyota', model: 'RAV4 V', modelId: 'rav4', year: 2019, fuel: 'Hybride', engine: '2.5 Hybrid 222', bodyType: 'SUV' },
-  { plate: '', make: 'Renault', makeId: 'renault', model: 'Duster', modelId: 'duster', year: 2018, fuel: 'Diesel', engine: '1.5 dCi 115 4x4', bodyType: 'SUV' },
-  { plate: '', make: 'Peugeot', makeId: 'peugeot', model: '3008', modelId: '3008', year: 2020, fuel: 'Hybride', engine: '1.6 Hybrid4 300', bodyType: 'SUV' },
-]
+// ─── Normalisation / validation ────────────────────────────────────────────
 
-/** Normalise une plaque FR : retire espaces/tirets, met en majuscule */
 export function normalizePlate(raw: string): string {
   return raw.toUpperCase().replace(/[\s\-\.]/g, '')
 }
 
-/** Valide le format plaque SIV (AB-123-CD) ou ancien format (123-AB-75) */
 export function validatePlate(raw: string): boolean {
-  const plate = normalizePlate(raw)
-  // Nouveau format : 2 lettres + 3 chiffres + 2 lettres (ex: AB123CD)
-  const newFormat = /^[A-Z]{2}\d{3}[A-Z]{2}$/.test(plate)
-  // Ancien format : 1-4 chiffres + 2-3 lettres + 2 chiffres (ex: 1234AB75)
-  const oldFormat = /^\d{1,4}[A-Z]{2,3}\d{2}$/.test(plate)
-  return newFormat || oldFormat
+  const p = normalizePlate(raw)
+  const newFmt = /^[A-Z]{2}\d{3}[A-Z]{2}$/.test(p)      // AB-123-CD
+  const oldFmt = /^\d{1,4}[A-Z]{2,3}\d{2}$/.test(p)      // 1234AB75
+  return newFmt || oldFmt
 }
 
-/** Formate une plaque pour affichage : AB123CD → AB-123-CD */
 export function formatPlate(raw: string): string {
-  const plate = normalizePlate(raw)
-  const newFormat = /^[A-Z]{2}\d{3}[A-Z]{2}$/.test(plate)
-  if (newFormat) {
-    return `${plate.slice(0, 2)}-${plate.slice(2, 5)}-${plate.slice(5)}`
+  const p = normalizePlate(raw)
+  if (/^[A-Z]{2}\d{3}[A-Z]{2}$/.test(p)) {
+    return `${p.slice(0, 2)}-${p.slice(2, 5)}-${p.slice(5)}`
   }
-  return plate
+  return p
 }
 
-/** Hash déterministe d'une chaîne → nombre */
-function strHash(s: string): number {
-  let h = 0
-  for (let i = 0; i < s.length; i++) {
-    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
-  }
-  return Math.abs(h)
+// ─── Mapping marque API → makeId interne ───────────────────────────────────
+
+const MAKE_MAP: Record<string, string> = {
+  RENAULT: 'renault',
+  PEUGEOT: 'peugeot',
+  'CITROËN': 'citroen',
+  CITROEN: 'citroen',
+  VOLKSWAGEN: 'volkswagen',
+  VW: 'volkswagen',
+  TOYOTA: 'toyota',
+  BMW: 'bmw',
+  MERCEDES: 'mercedes',
+  'MERCEDES-BENZ': 'mercedes',
+  FORD: 'ford',
+  OPEL: 'opel',
+  AUDI: 'audi',
+  FIAT: 'fiat',
+  SEAT: 'seat',
+  SKODA: 'volkswagen',
+  NISSAN: 'renault',
+  DACIA: 'renault',
 }
 
-/**
- * Recherche un véhicule par plaque d'immatriculation.
- * Simule un appel API avec délai réaliste.
- */
+// ─── Mapping modèle API → modelId interne (correspondance partielle) ────────
+
+const MODEL_MAP: Array<{ keywords: string[]; makeId: string; modelId: string }> = [
+  { keywords: ['CLIO IV', 'CLIO 4'], makeId: 'renault', modelId: 'clio4' },
+  { keywords: ['CLIO V', 'CLIO 5', 'CLIO'], makeId: 'renault', modelId: 'clio5' },
+  { keywords: ['MEGANE III', 'MEGANE 3', 'MÉGANE III', 'MÉGANE 3'], makeId: 'renault', modelId: 'megane3' },
+  { keywords: ['MEGANE IV', 'MEGANE 4', 'MÉGANE IV', 'MÉGANE 4', 'MEGANE', 'MÉGANE'], makeId: 'renault', modelId: 'megane4' },
+  { keywords: ['SCENIC', 'SCÉNIC'], makeId: 'renault', modelId: 'scenic3' },
+  { keywords: ['CAPTUR'], makeId: 'renault', modelId: 'captur' },
+  { keywords: ['KADJAR'], makeId: 'renault', modelId: 'kadjar' },
+  { keywords: ['DUSTER'], makeId: 'renault', modelId: 'duster' },
+  { keywords: ['208'], makeId: 'peugeot', modelId: '208-2' },
+  { keywords: ['308'], makeId: 'peugeot', modelId: '308-1' },
+  { keywords: ['3008'], makeId: 'peugeot', modelId: '3008' },
+  { keywords: ['5008'], makeId: 'peugeot', modelId: '5008' },
+  { keywords: ['2008'], makeId: 'peugeot', modelId: '2008' },
+  { keywords: ['C3'], makeId: 'citroen', modelId: 'c3-3' },
+  { keywords: ['C4'], makeId: 'citroen', modelId: 'c4-2' },
+  { keywords: ['C5 AIRCROSS', 'C5AIRCROSS'], makeId: 'citroen', modelId: 'c5air' },
+  { keywords: ['BERLINGO'], makeId: 'citroen', modelId: 'berlingo' },
+  { keywords: ['GOLF VIII', 'GOLF 8'], makeId: 'volkswagen', modelId: 'golf8' },
+  { keywords: ['GOLF VII', 'GOLF 7', 'GOLF'], makeId: 'volkswagen', modelId: 'golf7' },
+  { keywords: ['POLO'], makeId: 'volkswagen', modelId: 'polo6' },
+  { keywords: ['PASSAT'], makeId: 'volkswagen', modelId: 'passat' },
+  { keywords: ['TIGUAN'], makeId: 'volkswagen', modelId: 'tiguan' },
+  { keywords: ['TOUAREG'], makeId: 'volkswagen', modelId: 'touareg' },
+  { keywords: ['YARIS IV', 'YARIS 4'], makeId: 'toyota', modelId: 'yaris4' },
+  { keywords: ['YARIS'], makeId: 'toyota', modelId: 'yaris3' },
+  { keywords: ['COROLLA'], makeId: 'toyota', modelId: 'corolla' },
+  { keywords: ['RAV4', 'RAV-4'], makeId: 'toyota', modelId: 'rav4' },
+  { keywords: ['SERIE 1', 'SÉRIE 1', 'SERIES 1'], makeId: 'bmw', modelId: 'serie1f40' },
+  { keywords: ['SERIE 3', 'SÉRIE 3', 'SERIES 3'], makeId: 'bmw', modelId: 'serie3g20' },
+  { keywords: ['SERIE 5', 'SÉRIE 5', 'SERIES 5'], makeId: 'bmw', modelId: 'serie5g30' },
+  { keywords: ['X1'], makeId: 'bmw', modelId: 'x1f48' },
+  { keywords: ['CLASSE A', 'CLASS A', 'KLASSE A'], makeId: 'mercedes', modelId: 'classa177' },
+  { keywords: ['CLASSE C', 'CLASS C', 'KLASSE C'], makeId: 'mercedes', modelId: 'classc205' },
+  { keywords: ['CLASSE E', 'CLASS E', 'KLASSE E'], makeId: 'mercedes', modelId: 'classe206' },
+  { keywords: ['FIESTA'], makeId: 'ford', modelId: 'fiesta7' },
+  { keywords: ['FOCUS'], makeId: 'ford', modelId: 'focus4' },
+  { keywords: ['KUGA'], makeId: 'ford', modelId: 'kuga3' },
+  { keywords: ['CORSA'], makeId: 'opel', modelId: 'corsa5' },
+  { keywords: ['ASTRA'], makeId: 'opel', modelId: 'astra6' },
+  { keywords: ['MOKKA'], makeId: 'opel', modelId: 'mokka2' },
+  { keywords: ['A3'], makeId: 'audi', modelId: 'a3-8y' },
+  { keywords: ['A4'], makeId: 'audi', modelId: 'a4-b9' },
+  { keywords: ['Q3'], makeId: 'audi', modelId: 'q3-f3' },
+  { keywords: ['PANDA'], makeId: 'fiat', modelId: 'panda4' },
+  { keywords: ['500'], makeId: 'fiat', modelId: '500-3' },
+  { keywords: ['IBIZA'], makeId: 'seat', modelId: 'ibiza5' },
+  { keywords: ['LEON', 'LÉON'], makeId: 'seat', modelId: 'leon4' },
+]
+
+function findMakeId(marque: string): string {
+  const key = marque.toUpperCase().trim()
+  return MAKE_MAP[key] ?? key.toLowerCase().replace(/[^a-z]/g, '')
+}
+
+function findModelId(modele: string, makeId: string): string {
+  const upper = modele.toUpperCase().trim()
+  const candidates = MODEL_MAP.filter(m => m.makeId === makeId)
+  for (const entry of candidates) {
+    if (entry.keywords.some(kw => upper.includes(kw))) {
+      return entry.modelId
+    }
+  }
+  // fallback: premier modèle de la marque
+  return candidates[0]?.modelId ?? makeId
+}
+
+// ─── Mapping carburant API → libellé lisible ────────────────────────────────
+
+function parseFuel(energie: string): string {
+  const map: Record<string, string> = {
+    DIESEL: 'Diesel',
+    ESSENCE: 'Essence',
+    ES: 'Essence',
+    GO: 'Diesel',
+    ELECTRIQUE: 'Électrique',
+    EL: 'Électrique',
+    HYBRIDE: 'Hybride',
+    HY: 'Hybride',
+    'HYBRIDE ELECTRIQUE': 'Hybride',
+    GNV: 'Gaz naturel',
+    GPL: 'GPL',
+    GP: 'GPL',
+    H2: 'Hydrogène',
+  }
+  const key = (energie ?? '').toUpperCase().trim()
+  return map[key] ?? energie ?? 'N/C'
+}
+
+// ─── Lookup principal ──────────────────────────────────────────────────────
+
 export async function lookupPlate(rawPlate: string): Promise<PlateVehicleResult> {
-  const plate = normalizePlate(rawPlate)
-
   if (!validatePlate(rawPlate)) {
     throw new Error('Format de plaque invalide. Exemple : AB-123-CD')
   }
 
-  // Simule un appel réseau (800ms-1.5s)
-  await new Promise(r => setTimeout(r, 800 + Math.random() * 700))
+  const normalized = normalizePlate(rawPlate)
+  const res = await fetch(`/api/plate?plate=${encodeURIComponent(normalized)}`, {
+    method: 'POST',
+  })
 
-  // Sélection déterministe basée sur le hash de la plaque
-  const idx = strHash(plate) % VEHICLE_DATABASE.length
-  const result = { ...VEHICLE_DATABASE[idx], plate: formatPlate(rawPlate) }
-  return result
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error((body as { error?: string }).error ?? `Erreur ${res.status}`)
+  }
+
+  const json = await res.json() as { data?: Record<string, string>; error?: string }
+
+  if (json.error || !json.data) {
+    throw new Error(json.error ?? 'Véhicule introuvable pour cette plaque')
+  }
+
+  const d = json.data
+
+  // Vérification d'erreur dans la réponse data
+  if (d.erreur && d.erreur.trim() !== '') {
+    throw new Error(d.erreur)
+  }
+
+  const marque = (d.marque ?? '').toUpperCase()
+  const modele = d.modele ?? ''
+  const makeId = findMakeId(marque)
+  const modelId = findModelId(modele, makeId)
+
+  // Année depuis date1erCir_us (YYYY-MM-DD) ou date1erCir_fr (DD-MM-YYYY)
+  let year = new Date().getFullYear()
+  if (d.date1erCir_us) {
+    const y = parseInt(d.date1erCir_us.slice(0, 4), 10)
+    if (!isNaN(y)) year = y
+  } else if (d.date1erCir_fr) {
+    const parts = d.date1erCir_fr.split('-')
+    if (parts.length === 3) {
+      const y = parseInt(parts[2], 10)
+      if (!isNaN(y)) year = y
+    }
+  }
+
+  const fuel = parseFuel(d.energieNGC ?? d.energie ?? '')
+  const power = d.puisFiscReelCH ? `${d.puisFiscReelCH} ch` : d.puisFisc ? `${d.puisFisc} CV` : ''
+
+  // Libellé moteur : puissance + carburant
+  const engine = [power, d.cylindree ? `${d.cylindree} cm³` : '']
+    .filter(Boolean)
+    .join(' · ') || fuel
+
+  // Type carrosserie
+  const bodyMap: Record<string, string> = {
+    VP: 'Voiture particulière',
+    CAM: 'Camionnette',
+    VU: 'Véhicule utilitaire',
+    MOTO: 'Moto',
+    CYCLO: 'Cyclomoteur',
+  }
+  const bodyType = bodyMap[d.genreVCGNGC ?? ''] ?? d.carrosserieCG ?? 'Voiture'
+
+  const makeDisplay = marque.charAt(0) + marque.slice(1).toLowerCase()
+  const modelDisplay = modele.charAt(0).toUpperCase() + modele.slice(1).toLowerCase()
+
+  return {
+    plate: formatPlate(rawPlate),
+    make: makeDisplay,
+    makeId,
+    model: modelDisplay,
+    modelId,
+    year,
+    fuel,
+    engine,
+    bodyType,
+    co2: d.co2 ? `${d.co2} g/km` : undefined,
+    power,
+  }
 }
