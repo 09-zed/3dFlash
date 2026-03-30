@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ShoppingCart, Star, Tag } from 'lucide-react'
+import { ShoppingCart, Star, Check } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 import type { Product } from '../../types'
 
@@ -9,89 +10,133 @@ interface Props {
 
 export default function ProductCard({ product }: Props) {
   const { addItem } = useCart()
+  const [added, setAdded] = useState(false)
 
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null
 
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (product.stock === 0 || added) return
+    addItem(product)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1800)
+  }
+
+  const stockColor =
+    product.stock === 0 ? 'text-red-500' :
+    product.stock <= 5 ? 'text-amber-500' :
+    'text-green-500'
+
+  const stockLabel =
+    product.stock === 0 ? 'Rupture' :
+    product.stock <= 5 ? `Plus que ${product.stock}` :
+    'En stock'
+
   return (
-    <div className="card group flex flex-col h-full hover:shadow-md transition-shadow duration-200">
-      <Link to={`/produit/${product.id}`} className="relative overflow-hidden bg-gray-50">
+    <div className="group bg-white border border-slate-100 rounded-2xl overflow-hidden hover:shadow-xl hover:border-orange-200 hover:-translate-y-1 transition-all duration-200 flex flex-col h-full">
+      {/* Image */}
+      <Link to={`/produit/${product.id}`} className="relative block overflow-hidden bg-slate-50 aspect-[4/3]">
         <img
           src={product.images[0]}
           alt={product.name}
-          className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
         />
-        {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
+
+        {/* Badges top-left */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1.5">
           {product.isPromo && discount && (
-            <span className="badge bg-red-500 text-white">-{discount}%</span>
+            <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg shadow-sm">
+              -{discount}%
+            </span>
           )}
           {product.isBestSeller && (
-            <span className="badge bg-accent-500 text-white">Bestseller</span>
+            <span className="bg-amber-400 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-lg shadow-sm">
+              ⭐ Best
+            </span>
           )}
         </div>
+
+        {/* Out of stock overlay */}
         {product.stock === 0 && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <span className="text-white font-semibold text-sm bg-black/60 px-3 py-1 rounded">Rupture de stock</span>
+          <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
+            <span className="bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+              Rupture de stock
+            </span>
           </div>
-        )}
-        {product.stock > 0 && product.stock <= 5 && (
-          <span className="absolute bottom-2 right-2 badge bg-orange-100 text-orange-700">
-            Plus que {product.stock} en stock
-          </span>
         )}
       </Link>
 
-      <div className="flex flex-col flex-1 p-4 gap-2">
+      {/* Content */}
+      <div className="flex flex-col flex-1 p-4">
         {/* Brand & ref */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-brand-600 uppercase tracking-wide">{product.brand}</span>
-          <span className="text-xs text-gray-400 font-mono">{product.reference}</span>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs font-bold text-orange-600 uppercase tracking-wide">
+            {product.brand}
+          </span>
+          <span className="text-xs text-slate-400 font-mono">{product.reference}</span>
         </div>
 
         {/* Name */}
-        <Link to={`/produit/${product.id}`} className="flex-1">
-          <h3 className="text-sm font-semibold text-gray-800 leading-snug hover:text-brand-600 transition-colors line-clamp-2">
+        <Link to={`/produit/${product.id}`} className="flex-1 mb-2">
+          <h3 className="text-sm font-semibold text-slate-800 leading-snug hover:text-orange-600 transition-colors line-clamp-2">
             {product.name}
           </h3>
         </Link>
 
         {/* Rating */}
-        <div className="flex items-center gap-1">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star
-              key={i}
-              size={13}
-              className={i < Math.round(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
-            />
-          ))}
-          <span className="text-xs text-gray-500 ml-1">({product.reviewCount})</span>
+        <div className="flex items-center gap-1 mb-2">
+          <div className="flex">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                size={12}
+                className={i < Math.round(product.rating)
+                  ? 'text-amber-400 fill-amber-400'
+                  : 'text-slate-200 fill-slate-200'}
+              />
+            ))}
+          </div>
+          <span className="text-xs text-slate-400">({product.reviewCount})</span>
         </div>
 
-        {/* Category */}
-        <div className="flex items-center gap-1 text-xs text-gray-500">
-          <Tag size={11} />
-          <span>{product.categoryName}</span>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-end justify-between mt-auto pt-2">
+        {/* Price + cart */}
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
           <div>
-            <span className="text-xl font-extrabold text-brand-700">{product.price.toFixed(2)} €</span>
+            <div className="text-lg font-black text-slate-900">
+              {product.price.toFixed(2)} €
+            </div>
             {product.originalPrice && (
-              <span className="text-sm text-gray-400 line-through ml-2">{product.originalPrice.toFixed(2)} €</span>
+              <div className="text-xs text-slate-400 line-through">
+                {product.originalPrice.toFixed(2)} €
+              </div>
             )}
           </div>
-          <button
-            onClick={() => addItem(product)}
-            disabled={product.stock === 0}
-            className="bg-brand-600 hover:bg-brand-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
-            title="Ajouter au panier"
-          >
-            <ShoppingCart size={18} />
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Stock dot */}
+            <span className={`text-xs font-semibold ${stockColor}`}>
+              {stockLabel}
+            </span>
+
+            {/* Add to cart */}
+            <button
+              onClick={handleAdd}
+              disabled={product.stock === 0}
+              title={product.stock === 0 ? 'Rupture de stock' : 'Ajouter au panier'}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                added
+                  ? 'bg-green-500 text-white scale-95'
+                  : product.stock === 0
+                  ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                  : 'bg-orange-500 hover:bg-orange-600 active:scale-90 text-white shadow-sm'
+              }`}
+            >
+              {added ? <Check size={16} /> : <ShoppingCart size={16} />}
+            </button>
+          </div>
         </div>
       </div>
     </div>
