@@ -7,22 +7,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50:  '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#1d4ed8',
-          600: '#1e40af',
-          700: '#1e3a8a',
-          800: '#1e3166',
-          900: '#172554',
+        aps: {
+          50:  '#e6ecf7',
+          100: '#c0cfec',
+          200: '#97b0e0',
+          300: '#6d91d4',
+          400: '#4f79cc',
+          500: '#3062c4',
+          600: '#003087',   // Oscaro-style deep blue (main brand)
+          700: '#002570',
+          800: '#001a58',
+          900: '#000f3a',
         },
         accent: {
-          400: '#fb923c',
-          500: '#f97316',
-          600: '#ea580c',
+          400: '#ff8533',
+          500: '#ff6a00',   // Oscaro-style orange CTA
+          600: '#e55c00',
         },
       },
       fontFamily: {

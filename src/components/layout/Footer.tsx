@@ -3,12 +3,12 @@ import { Phone, Mail, MapPin, Clock, Shield, Truck, RotateCcw } from 'lucide-rea
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-900 text-slate-400 mt-20">
+    <footer className="bg-aps-900 text-slate-400 mt-12">
       {/* Trust strip */}
-      <div className="border-b border-slate-800">
+      <div className="border-b border-aps-800">
         <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-aps-800 rounded-xl flex items-center justify-center flex-shrink-0">
               <Truck size={18} className="text-orange-400" />
             </div>
             <div>
@@ -17,7 +17,7 @@ export default function Footer() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-aps-800 rounded-xl flex items-center justify-center flex-shrink-0">
               <Shield size={18} className="text-orange-400" />
             </div>
             <div>
@@ -26,7 +26,7 @@ export default function Footer() {
             </div>
           </div>
           <div className="flex items-center gap-3 col-span-2 sm:col-span-1">
-            <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-aps-800 rounded-xl flex items-center justify-center flex-shrink-0">
               <RotateCcw size={18} className="text-orange-400" />
             </div>
             <div>
@@ -114,7 +114,7 @@ export default function Footer() {
       </div>
 
       {/* Bottom */}
-      <div className="border-t border-slate-800 py-4 px-4">
+      <div className="border-t border-aps-800 py-4 px-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-slate-600">
           <span>© {new Date().getFullYear()} APS Auto Pièces. Tous droits réservés.</span>
           <div className="flex items-center gap-4">

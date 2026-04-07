@@ -3,14 +3,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 /**
  * Proxy serverless — Recherche par plaque d'immatriculation FR
  *
- * Priorité des providers (définie par les variables d'environnement) :
+ * Priorité des providers :
  *   1. AUTO_WAYS_TOKEN   → app.auto-ways.net  (essai gratuit sur auto-ways.net)
- *   2. RAPIDAPI_KEY      → RapidAPI (plan gratuit sur rapidapi.com)
- *   3. PLATE_API_TOKEN   → apiplaqueimmatriculation.com (payant, 39€/mois)
- *   4. fallback mock     → données simulées côté frontend
+ *   2. RAPIDAPI_KEY      → RapidAPI (plan gratuit ~100 req/mois)
+ *   3. PLATE_API_TOKEN   → apiplaqueimmatriculation.com (payant)
+ *   4. fallback          → frontend bascule sur saisie manuelle
+ *
+ * Pour configurer un provider gratuit :
+ *   → Créez un compte sur https://www.auto-ways.net
+ *   → Ajoutez AUTO_WAYS_TOKEN dans les variables d'env Vercel
  */
-
-// ─── Format plaque ──────────────────────────────────────────────────────────
 
 function toApiFormat(raw: string): string {
   const n = raw.toUpperCase().replace(/[\s\-.]/g, '')
@@ -19,30 +21,24 @@ function toApiFormat(raw: string): string {
     : n
 }
 
-// ─── Provider : auto-ways.net ───────────────────────────────────────────────
+// ─── Provider 1 : auto-ways.net ────────────────────────────────────────────
 
 async function fetchAutoWays(plate: string, token: string) {
   const url = new URL('https://app.auto-ways.net/api/v1/fr')
   url.searchParams.set('plaque', plate)
   url.searchParams.set('token', token)
   url.searchParams.set('country', 'fr')
-
-  const res = await fetch(url.toString(), {
-    headers: { Accept: 'application/json' },
-  })
+  const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } })
   return { res, json: await res.json().catch(() => null) }
 }
 
-// ─── Provider : RapidAPI ────────────────────────────────────────────────────
-// Inscription gratuite → rapidapi.com/api-plaque-immatriculation-siv
-// Host RapidAPI : api-plaque-immatriculation-siv.p.rapidapi.com
+// ─── Provider 2 : RapidAPI ──────────────────────────────────────────────────
 
 async function fetchRapidAPI(plate: string, key: string) {
-  const host = process.env.RAPIDAPI_HOST || 'api-plaque-immatriculation-siv.p.rapidapi.com'
+  const host = process.env.RAPIDAPI_HOST ?? 'api-plaque-immatriculation-siv.p.rapidapi.com'
   const url = new URL(`https://${host}/`)
   url.searchParams.set('immatriculation', plate)
   url.searchParams.set('pays', 'FR')
-
   const res = await fetch(url.toString(), {
     method: 'POST',
     headers: {
@@ -54,14 +50,13 @@ async function fetchRapidAPI(plate: string, key: string) {
   return { res, json: await res.json().catch(() => null) }
 }
 
-// ─── Provider : apiplaqueimmatriculation.com ────────────────────────────────
+// ─── Provider 3 : apiplaqueimmatriculation.com ──────────────────────────────
 
 async function fetchApiPlaque(plate: string, token: string) {
   const url = new URL('https://api.apiplaqueimmatriculation.com/plaque')
   url.searchParams.set('immatriculation', plate)
   url.searchParams.set('token', token)
   url.searchParams.set('pays', 'FR')
-
   const res = await fetch(url.toString(), {
     method: 'POST',
     headers: { Accept: 'application/json' },
@@ -69,7 +64,7 @@ async function fetchApiPlaque(plate: string, token: string) {
   return { res, json: await res.json().catch(() => null) }
 }
 
-// ─── Handler principal ──────────────────────────────────────────────────────
+// ─── Handler ────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -86,9 +81,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (process.env.AUTO_WAYS_TOKEN) {
       const { res: r, json } = await fetchAutoWays(plate, process.env.AUTO_WAYS_TOKEN)
       if (r.ok && json && !json.error) {
-        // Normalise le format vers { data: {...} } attendu par le frontend
         const data = json.data ?? json
-        return res.status(200).json({ data })
+        return res.status(200).json({ data, provider: 'auto-ways' })
       }
     }
 
@@ -97,20 +91,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { res: r, json } = await fetchRapidAPI(plate, process.env.RAPIDAPI_KEY)
       if (r.ok && json && !json.message?.toLowerCase().includes('error')) {
         const data = json.data ?? json
-        return res.status(200).json({ data })
+        return res.status(200).json({ data, provider: 'rapidapi' })
       }
     }
 
     // ── 3. apiplaqueimmatriculation.com ───────────────────────────────────
     if (process.env.PLATE_API_TOKEN) {
       const { res: r, json } = await fetchApiPlaque(plate, process.env.PLATE_API_TOKEN)
-      if (r.ok && json) {
-        return res.status(200).json(json)
+      if (r.ok && json && !json.erreur) {
+        return res.status(200).json({ ...(json.data ? json : { data: json }), provider: 'apiplaqueimmatriculation' })
       }
     }
 
-    // ── Aucun provider configuré → fallback mock frontend ─────────────────
-    return res.status(200).json({ fallback: true, plate })
+    // ── Aucun provider → le frontend affiche la saisie manuelle ──────────
+    return res.status(200).json({
+      fallback: true,
+      plate,
+      message: 'Aucune API configurée. Configurez AUTO_WAYS_TOKEN dans les variables d\'env Vercel.',
+    })
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erreur inconnue'

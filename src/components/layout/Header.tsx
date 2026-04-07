@@ -1,8 +1,22 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, Search, Phone, Menu, X, Car, ChevronRight, Zap } from 'lucide-react'
+import {
+  ShoppingCart, Search, Phone, Menu, X, Car, ChevronDown,
+  User, MapPin, Package
+} from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 import { useVehicle } from '../../context/VehicleContext'
+
+const NAV_CATEGORIES = [
+  { label: 'Freinage', id: 'freinage' },
+  { label: 'Filtration / Vidange', id: 'filtration' },
+  { label: 'Suspension', id: 'suspension' },
+  { label: 'Transmission', id: 'transmission' },
+  { label: 'Éclairage', id: 'eclairage' },
+  { label: 'Moteur', id: 'moteur' },
+  { label: 'Batterie / Élec.', id: 'electricite' },
+  { label: 'Carrosserie', id: 'carrosserie' },
+]
 
 export default function Header() {
   const { totalItems, toggleCart } = useCart()
@@ -21,92 +35,111 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50">
-      {/* Top bar */}
-      <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <span className="flex items-center gap-1.5">
-            <Zap size={11} className="text-orange-400" />
-            Livraison offerte dès 50€ · Plus de 50 000 références
-          </span>
-          <a href="tel:+33123456789" className="flex items-center gap-1.5 hover:text-orange-400 transition-colors font-medium">
+    <header className="sticky top-0 z-50 shadow-lg">
+
+      {/* ─── Top utility bar ─── */}
+      <div className="bg-[#001F5B] text-white/70 text-xs">
+        <div className="max-w-7xl mx-auto px-4 py-1.5 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1.5">
+              <MapPin size={11} />
+              Livraison France métropolitaine
+            </span>
+            <span className="hidden sm:flex items-center gap-1.5">
+              <Package size={11} />
+              +50 000 références en stock
+            </span>
+          </div>
+          <a href="tel:+33123456789" className="flex items-center gap-1.5 hover:text-white transition-colors font-medium">
             <Phone size={11} />
-            01 23 45 67 89 · Lun–Sam 8h–19h
+            <span>01 23 45 67 89</span>
+            <span className="text-white/40 hidden sm:inline">· Lun–Sam 8h–19h</span>
           </a>
         </div>
       </div>
 
-      {/* Main header */}
-      <div className="bg-slate-900 border-b border-slate-800">
+      {/* ─── Main header (blue) ─── */}
+      <div className="bg-aps-600">
         <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-4">
+
             {/* Logo */}
-            <Link to="/" className="flex-shrink-0 flex items-center gap-2.5">
-              <div className="bg-orange-500 text-white font-black text-sm px-2.5 py-1.5 rounded-lg leading-none tracking-wide">
+            <Link to="/" className="flex-shrink-0 flex items-center gap-2.5 group" onClick={() => setMobileOpen(false)}>
+              <div className="bg-accent-500 text-white font-black text-base px-3 py-1.5 rounded-lg leading-none tracking-wider shadow-md group-hover:bg-accent-600 transition-colors">
                 APS
               </div>
-              <div className="hidden sm:block">
-                <div className="text-white font-bold text-sm leading-tight">Auto Pièces</div>
-                <div className="text-slate-400 text-xs">spécialiste depuis 1995</div>
+              <div className="hidden sm:block leading-tight">
+                <div className="text-white font-bold text-sm">Auto Pièces</div>
+                <div className="text-aps-200 text-xs font-medium">Spécialiste depuis 1995</div>
               </div>
             </Link>
 
-            {/* Search */}
-            <form onSubmit={handleSearch} className="flex-1 min-w-0 hidden sm:block">
-              <div className="relative">
+            {/* Search bar */}
+            <form onSubmit={handleSearch} className="flex-1 min-w-0 hidden sm:flex">
+              <div className="flex w-full rounded-lg overflow-hidden shadow-sm">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher une pièce, une référence..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-4 pr-12 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                  placeholder="Rechercher une pièce, une référence, une marque..."
+                  className="flex-1 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none"
                 />
                 <button
                   type="submit"
-                  className="absolute right-0 top-0 bottom-0 px-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-r-xl transition-colors"
+                  className="bg-accent-500 hover:bg-accent-600 text-white px-5 flex items-center gap-2 font-semibold text-sm transition-colors flex-shrink-0"
                 >
                   <Search size={17} />
+                  <span className="hidden lg:inline">Rechercher</span>
                 </button>
               </div>
             </form>
 
-            <div className="flex items-center gap-2 ml-auto sm:ml-0">
+            {/* Right actions */}
+            <div className="flex items-center gap-2 flex-shrink-0 ml-auto sm:ml-0">
+              {/* Account */}
+              <button className="hidden sm:flex flex-col items-center gap-0.5 text-white/80 hover:text-white transition-colors px-2 py-1">
+                <User size={20} />
+                <span className="text-xs font-medium">Mon compte</span>
+              </button>
+
               {/* Cart */}
               <button
                 onClick={toggleCart}
-                className="relative flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors"
+                className="relative flex flex-col items-center gap-0.5 text-white hover:text-white/90 transition-colors px-2 py-1"
               >
-                <ShoppingCart size={18} />
-                <span className="hidden sm:inline text-sm">Panier</span>
-                {totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-white text-orange-600 text-xs font-black w-5 h-5 rounded-full flex items-center justify-center shadow">
-                    {totalItems > 99 ? '99+' : totalItems}
-                  </span>
-                )}
+                <div className="relative">
+                  <ShoppingCart size={22} />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-accent-500 text-white text-xs font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center shadow leading-none px-0.5">
+                      {totalItems > 99 ? '99+' : totalItems}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs font-medium hidden sm:block">Panier</span>
               </button>
 
-              {/* Mobile menu toggle */}
+              {/* Mobile burger */}
               <button
-                className="sm:hidden p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+                className="sm:hidden p-2 text-white/80 hover:text-white transition-colors"
                 onClick={() => setMobileOpen(v => !v)}
               >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                {mobileOpen ? <X size={22} /> : <Menu size={22} />}
               </button>
             </div>
           </div>
 
           {/* Mobile search */}
           {mobileOpen && (
-            <form onSubmit={handleSearch} className="mt-3 sm:hidden">
-              <div className="relative">
+            <form onSubmit={handleSearch} className="mt-3 sm:hidden animate-fade-in">
+              <div className="flex rounded-lg overflow-hidden">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Rechercher une pièce..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-4 pr-12 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-all"
+                  className="flex-1 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none"
                 />
-                <button type="submit" className="absolute right-0 top-0 bottom-0 px-3.5 bg-orange-500 text-white rounded-r-xl">
+                <button type="submit" className="bg-accent-500 text-white px-4 flex items-center">
                   <Search size={17} />
                 </button>
               </div>
@@ -115,63 +148,97 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Nav bar */}
-      <nav className="bg-slate-800 border-b border-slate-700">
+      {/* ─── Vehicle banner (shown when vehicle selected) ─── */}
+      {selectedVehicle && (
+        <div className="bg-aps-700 border-b border-aps-800">
+          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-3">
+            <Car size={15} className="text-accent-500 flex-shrink-0" />
+            <span className="text-white text-sm font-semibold flex-1 min-w-0 truncate">
+              {selectedVehicle.make.name} {selectedVehicle.model.name}
+              <span className="text-aps-300 font-normal ml-1.5">({selectedVehicle.year})</span>
+            </span>
+            <Link
+              to="/mes-pieces"
+              className="text-accent-400 hover:text-accent-500 text-xs font-semibold flex-shrink-0 transition-colors"
+            >
+              Mes pièces
+            </Link>
+            <span className="text-aps-500">|</span>
+            <button
+              onClick={clearVehicle}
+              className="text-aps-300 hover:text-white text-xs transition-colors flex-shrink-0 flex items-center gap-1"
+            >
+              <X size={12} />
+              Changer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Category navigation ─── */}
+      <nav className="bg-aps-700 border-t border-aps-600/50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="hidden sm:flex items-center gap-1 text-sm overflow-x-auto no-scrollbar">
-            <Link to="/" className="flex-shrink-0 text-slate-300 hover:text-white px-3 py-2.5 font-medium transition-colors">
-              Accueil
+          <div className="hidden sm:flex items-center overflow-x-auto no-scrollbar">
+            <Link
+              to="/catalogue"
+              className="flex-shrink-0 flex items-center gap-1.5 text-white font-bold text-sm px-4 py-3 hover:bg-aps-600 transition-colors border-r border-aps-600/50"
+            >
+              <Menu size={15} />
+              Toutes catégories
+              <ChevronDown size={13} />
             </Link>
-            <Link to="/catalogue" className="flex-shrink-0 text-slate-300 hover:text-white px-3 py-2.5 font-medium transition-colors">
-              Catalogue
-            </Link>
-            <Link to="/catalogue?isPromo=true" className="flex-shrink-0 text-orange-400 hover:text-orange-300 px-3 py-2.5 font-bold transition-colors">
+
+            {NAV_CATEGORIES.map(cat => (
+              <Link
+                key={cat.id}
+                to={`/catalogue?categoryId=${cat.id}`}
+                className="flex-shrink-0 text-aps-100 hover:text-white hover:bg-aps-600 text-sm px-3 py-3 transition-colors font-medium whitespace-nowrap"
+              >
+                {cat.label}
+              </Link>
+            ))}
+
+            <Link
+              to="/catalogue?isPromo=true"
+              className="flex-shrink-0 text-accent-400 hover:text-accent-500 hover:bg-aps-600 text-sm px-3 py-3 transition-colors font-bold whitespace-nowrap ml-auto"
+            >
               🔥 Promotions
             </Link>
-            <Link to="/catalogue?isBestSeller=true" className="flex-shrink-0 text-slate-300 hover:text-white px-3 py-2.5 font-medium transition-colors">
-              ⭐ Bestsellers
-            </Link>
-
-            {/* Vehicle banner in nav */}
-            {selectedVehicle ? (
-              <div className="ml-auto flex-shrink-0 flex items-center gap-2 bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 my-1.5">
-                <Car size={14} className="text-orange-400" />
-                <span className="text-white text-xs font-semibold">
-                  {selectedVehicle.make.name} {selectedVehicle.model.name}
-                </span>
-                <span className="text-slate-400 text-xs">({selectedVehicle.year})</span>
-                <Link to="/catalogue" className="text-orange-400 hover:text-orange-300 text-xs font-medium ml-1 flex items-center gap-0.5">
-                  Pièces <ChevronRight size={12} />
-                </Link>
-                <button onClick={clearVehicle} className="text-slate-500 hover:text-red-400 transition-colors ml-0.5">
-                  <X size={12} />
-                </button>
-              </div>
-            ) : (
-              <Link
-                to="/#plaque"
-                className="ml-auto flex-shrink-0 flex items-center gap-1.5 text-slate-400 hover:text-white text-xs px-3 py-2 transition-colors"
-              >
-                <Car size={13} />
-                Mon véhicule
-              </Link>
-            )}
           </div>
 
-          {/* Mobile nav */}
+          {/* Mobile nav menu */}
           {mobileOpen && (
-            <div className="sm:hidden py-2 space-y-0.5">
-              <Link to="/" className="flex items-center text-slate-300 px-3 py-2 text-sm rounded-lg hover:bg-slate-700" onClick={() => setMobileOpen(false)}>Accueil</Link>
-              <Link to="/catalogue" className="flex items-center text-slate-300 px-3 py-2 text-sm rounded-lg hover:bg-slate-700" onClick={() => setMobileOpen(false)}>Catalogue</Link>
-              <Link to="/catalogue?isPromo=true" className="flex items-center text-orange-400 px-3 py-2 text-sm font-bold rounded-lg hover:bg-slate-700" onClick={() => setMobileOpen(false)}>🔥 Promotions</Link>
-              <Link to="/catalogue?isBestSeller=true" className="flex items-center text-slate-300 px-3 py-2 text-sm rounded-lg hover:bg-slate-700" onClick={() => setMobileOpen(false)}>⭐ Bestsellers</Link>
+            <div className="sm:hidden py-2 space-y-0.5 animate-fade-in">
+              <Link to="/" className="flex items-center text-white px-3 py-2.5 text-sm font-medium hover:bg-aps-600 rounded-lg transition-colors" onClick={() => setMobileOpen(false)}>
+                Accueil
+              </Link>
+              <Link to="/catalogue" className="flex items-center text-white px-3 py-2.5 text-sm font-medium hover:bg-aps-600 rounded-lg transition-colors" onClick={() => setMobileOpen(false)}>
+                Catalogue complet
+              </Link>
+              {NAV_CATEGORIES.slice(0, 6).map(cat => (
+                <Link
+                  key={cat.id}
+                  to={`/catalogue?categoryId=${cat.id}`}
+                  className="flex items-center text-aps-200 px-3 py-2 text-sm hover:bg-aps-600 rounded-lg transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {cat.label}
+                </Link>
+              ))}
+              <Link
+                to="/catalogue?isPromo=true"
+                className="flex items-center text-accent-400 px-3 py-2.5 text-sm font-bold hover:bg-aps-600 rounded-lg transition-colors"
+                onClick={() => setMobileOpen(false)}
+              >
+                🔥 Promotions
+              </Link>
               {selectedVehicle && (
-                <div className="flex items-center gap-2 bg-slate-700 rounded-lg px-3 py-2">
-                  <Car size={14} className="text-orange-400" />
+                <div className="flex items-center gap-2 bg-aps-800 rounded-lg px-3 py-2.5 mt-2">
+                  <Car size={14} className="text-accent-500" />
                   <span className="text-white text-sm font-medium flex-1">
                     {selectedVehicle.make.name} {selectedVehicle.model.name} ({selectedVehicle.year})
                   </span>
-                  <button onClick={clearVehicle} className="text-slate-500 hover:text-red-400">
+                  <button onClick={clearVehicle} className="text-aps-400 hover:text-red-400">
                     <X size={14} />
                   </button>
                 </div>

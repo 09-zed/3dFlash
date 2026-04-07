@@ -1,129 +1,98 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useVehicle } from '../context/VehicleContext'
-import { Car, ChevronRight, ArrowLeft, Wrench } from 'lucide-react'
+import { Car, ChevronRight, ArrowLeft } from 'lucide-react'
 
-// Catégories enrichies avec sous-catégories et couleurs
 const PART_CATEGORIES = [
   {
     id: 'freinage',
     label: 'Freinage',
     emoji: '🛑',
-    color: 'from-red-50 to-red-100',
-    border: 'border-red-200',
-    iconBg: 'bg-red-100',
-    iconText: 'text-red-600',
-    hoverBorder: 'hover:border-red-400',
     items: ['Plaquettes de frein', 'Disques de frein', 'Kits freinage', 'Étriers', 'Flexibles de frein'],
     count: 342,
+    color: 'border-red-300 hover:border-red-500 hover:bg-red-50',
+    accent: 'text-red-600',
   },
   {
     id: 'entretien',
     label: 'Entretien / Vidange',
     emoji: '🛢️',
-    color: 'from-amber-50 to-yellow-100',
-    border: 'border-amber-200',
-    iconBg: 'bg-amber-100',
-    iconText: 'text-amber-600',
-    hoverBorder: 'hover:border-amber-400',
-    items: ['Huile moteur', 'Filtre à huile', 'Filtre à air', 'Filtre habitacle', 'Bougies d\'allumage'],
+    items: ['Huile moteur', 'Filtre à huile', 'Filtre à air', 'Filtre habitacle', 'Bougies'],
     count: 486,
     catalogId: 'filtration',
+    color: 'border-amber-300 hover:border-amber-500 hover:bg-amber-50',
+    accent: 'text-amber-700',
   },
   {
     id: 'suspension',
     label: 'Suspension / Direction',
     emoji: '🔩',
-    color: 'from-blue-50 to-blue-100',
-    border: 'border-blue-200',
-    iconBg: 'bg-blue-100',
-    iconText: 'text-blue-600',
-    hoverBorder: 'hover:border-blue-400',
-    items: ['Amortisseurs', 'Ressorts', 'Rotules de direction', 'Triangles', 'Silent-blocs'],
+    items: ['Amortisseurs', 'Ressorts', 'Rotules', 'Triangles', 'Silent-blocs'],
     count: 264,
+    color: 'border-blue-300 hover:border-blue-500 hover:bg-blue-50',
+    accent: 'text-blue-700',
   },
   {
     id: 'transmission',
     label: 'Transmission / Embrayage',
     emoji: '⚙️',
-    color: 'from-slate-50 to-slate-100',
-    border: 'border-slate-200',
-    iconBg: 'bg-slate-100',
-    iconText: 'text-slate-600',
-    hoverBorder: 'hover:border-slate-400',
-    items: ['Kits d\'embrayage', 'Courroie de distribution', 'Cardan & demi-arbres', 'Joint de cardan', 'Volant moteur'],
+    items: ['Kits embrayage', 'Courroie distrib.', 'Cardans', 'Joint de cardan', 'Volant moteur'],
     count: 196,
+    color: 'border-slate-300 hover:border-slate-500 hover:bg-slate-50',
+    accent: 'text-slate-700',
   },
   {
     id: 'eclairage',
     label: 'Éclairage',
     emoji: '💡',
-    color: 'from-yellow-50 to-yellow-100',
-    border: 'border-yellow-200',
-    iconBg: 'bg-yellow-100',
-    iconText: 'text-yellow-600',
-    hoverBorder: 'hover:border-yellow-400',
-    items: ['Ampoules LED / Xénon', 'Phares avant', 'Feux arrière', 'Feux antibrouillard', 'Indicateurs de direction'],
+    items: ['Ampoules LED / Xénon', 'Phares avant', 'Feux arrière', 'Antibrouillards', 'Clignotants'],
     count: 187,
+    color: 'border-yellow-300 hover:border-yellow-500 hover:bg-yellow-50',
+    accent: 'text-yellow-700',
   },
   {
     id: 'moteur',
     label: 'Moteur',
     emoji: '🔧',
-    color: 'from-orange-50 to-orange-100',
-    border: 'border-orange-200',
-    iconBg: 'bg-orange-100',
-    iconText: 'text-orange-600',
-    hoverBorder: 'hover:border-orange-400',
-    items: ['Courroie accessoires', 'Joints de culasse', 'Pompe à eau', 'Thermostat', 'Soupapes & ressorts'],
+    items: ['Courroie accessoires', 'Joints de culasse', 'Pompe à eau', 'Thermostat', 'Soupapes'],
     count: 415,
+    color: 'border-orange-300 hover:border-orange-500 hover:bg-orange-50',
+    accent: 'text-orange-700',
   },
   {
     id: 'electricite',
     label: 'Batterie / Électricité',
     emoji: '⚡',
-    color: 'from-violet-50 to-purple-100',
-    border: 'border-violet-200',
-    iconBg: 'bg-violet-100',
-    iconText: 'text-violet-600',
-    hoverBorder: 'hover:border-violet-400',
-    items: ['Batteries', 'Alternateurs', 'Démarreurs', 'Capteurs & sondes', 'Bobines d\'allumage'],
+    items: ['Batteries', 'Alternateurs', 'Démarreurs', 'Capteurs & sondes', 'Bobines'],
     count: 143,
+    color: 'border-violet-300 hover:border-violet-500 hover:bg-violet-50',
+    accent: 'text-violet-700',
   },
   {
     id: 'climatisation',
     label: 'Climatisation',
     emoji: '❄️',
-    color: 'from-cyan-50 to-cyan-100',
-    border: 'border-cyan-200',
-    iconBg: 'bg-cyan-100',
-    iconText: 'text-cyan-600',
-    hoverBorder: 'hover:border-cyan-400',
     items: ['Compresseurs clim', 'Condenseurs', 'Filtre déshydratant', 'Détendeurs', 'Liquide réfrigérant'],
     count: 98,
+    color: 'border-cyan-300 hover:border-cyan-500 hover:bg-cyan-50',
+    accent: 'text-cyan-700',
   },
   {
     id: 'carrosserie',
     label: 'Carrosserie',
     emoji: '🚗',
-    color: 'from-green-50 to-green-100',
-    border: 'border-green-200',
-    iconBg: 'bg-green-100',
-    iconText: 'text-green-600',
-    hoverBorder: 'hover:border-green-400',
     items: ['Pare-chocs', 'Ailes & capots', 'Rétroviseurs', 'Essuie-glaces', 'Vitrages'],
     count: 312,
+    color: 'border-green-300 hover:border-green-500 hover:bg-green-50',
+    accent: 'text-green-700',
   },
   {
     id: 'pneumatiques',
     label: 'Pneumatiques',
     emoji: '⭕',
-    color: 'from-gray-50 to-gray-100',
-    border: 'border-gray-200',
-    iconBg: 'bg-gray-100',
-    iconText: 'text-gray-600',
-    hoverBorder: 'hover:border-gray-400',
-    items: ['Pneus été', 'Pneus hiver', 'Toutes saisons', 'Jantes & roues', 'Valves & accessoires'],
+    items: ['Pneus été', 'Pneus hiver', 'Toutes saisons', 'Jantes', 'Valves & accessoires'],
     count: 521,
+    color: 'border-gray-300 hover:border-gray-500 hover:bg-gray-50',
+    accent: 'text-gray-700',
   },
 ]
 
@@ -139,53 +108,50 @@ export default function VehiclePartsPage() {
   const { make, model, year } = selectedVehicle
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#F4F6FA]">
 
-      {/* ─── Hero vehicle banner ─── */}
-      <div className="bg-slate-900 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* ─── Breadcrumb + Vehicle banner ─── */}
+      <div className="bg-aps-600 border-b border-aps-700">
+        <div className="max-w-7xl mx-auto px-4 py-5">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm mb-4 transition-colors"
+            className="flex items-center gap-1.5 text-aps-200 hover:text-white text-sm mb-4 transition-colors"
           >
-            <ArrowLeft size={15} />
-            Modifier la plaque
+            <ArrowLeft size={14} />
+            Modifier mon véhicule
           </button>
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-orange-500/20 border border-orange-500/30 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Car size={22} className="text-orange-400" />
+              <div className="w-12 h-12 bg-white/10 border border-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Car size={24} className="text-white" />
               </div>
               <div>
-                <div className="text-slate-400 text-xs font-medium mb-0.5">Pièces compatibles pour votre véhicule</div>
+                <div className="text-aps-300 text-xs font-medium mb-0.5">Pièces compatibles pour votre véhicule</div>
                 <div className="text-white font-black text-xl sm:text-2xl">
                   {make.name} {model.name}
-                  <span className="text-slate-400 font-normal text-base ml-2">({year})</span>
+                  <span className="text-aps-300 font-normal text-base ml-2">· {year}</span>
                 </div>
               </div>
             </div>
-
-            <div className="sm:ml-auto flex items-center gap-2">
-              <Link
-                to="/catalogue"
-                className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm border border-slate-700 hover:border-slate-500 rounded-xl px-3 py-2 transition-all"
-              >
-                <Wrench size={14} />
-                Voir tout le catalogue
-              </Link>
-            </div>
+            <Link
+              to="/catalogue"
+              className="sm:ml-auto flex items-center gap-1.5 text-sm bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg px-4 py-2 transition-all font-medium"
+            >
+              Catalogue complet
+              <ChevronRight size={14} />
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* ─── Category selection ─── */}
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">
+      {/* ─── Categories grid ─── */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="text-center mb-7">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#1A1A2E] mb-2">
             Quelle pièce recherchez-vous ?
           </h1>
-          <p className="text-slate-500 text-base">
+          <p className="text-slate-500">
             Sélectionnez une catégorie pour voir les pièces compatibles avec votre {make.name} {model.name}
           </p>
         </div>
@@ -195,27 +161,21 @@ export default function VehiclePartsPage() {
             <Link
               key={cat.id}
               to={`/catalogue?categoryId=${cat.catalogId ?? cat.id}`}
-              className={`group bg-white border-2 ${cat.border} ${cat.hoverBorder} rounded-2xl p-5 transition-all duration-200 hover:shadow-xl hover:-translate-y-1 flex flex-col gap-3`}
+              className={`group bg-white border-2 ${cat.color} rounded-xl p-5 transition-all duration-200 hover:shadow-lg flex flex-col gap-3 hover:-translate-y-0.5`}
             >
               {/* Header */}
-              <div className="flex items-start justify-between gap-2">
-                <div className={`w-12 h-12 ${cat.iconBg} rounded-xl flex items-center justify-center text-2xl flex-shrink-0`}>
-                  {cat.emoji}
-                </div>
-                <span className="text-xs text-slate-400 font-medium mt-1 flex-shrink-0">
+              <div className="flex items-start justify-between">
+                <div className="text-3xl">{cat.emoji}</div>
+                <span className="text-xs text-slate-400 font-medium bg-slate-50 px-2 py-0.5 rounded-full">
                   {cat.count.toLocaleString()} réf.
                 </span>
               </div>
 
               {/* Title */}
-              <div>
-                <h3 className={`font-bold text-slate-900 text-base group-hover:${cat.iconText} transition-colors`}>
-                  {cat.label}
-                </h3>
-              </div>
+              <h3 className="font-bold text-slate-900 text-base leading-tight">{cat.label}</h3>
 
               {/* Sub-items */}
-              <ul className="space-y-1.5 flex-1">
+              <ul className="space-y-1 flex-1">
                 {cat.items.map(item => (
                   <li key={item} className="flex items-center gap-2 text-sm text-slate-500">
                     <div className="w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" />
@@ -225,20 +185,20 @@ export default function VehiclePartsPage() {
               </ul>
 
               {/* CTA */}
-              <div className={`flex items-center gap-1 text-sm font-semibold ${cat.iconText} mt-1`}>
+              <div className={`flex items-center gap-1 text-sm font-bold ${cat.accent} mt-1`}>
                 Voir les pièces
-                <ChevronRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
           ))}
         </div>
 
-        {/* Bottom CTA */}
-        <div className="mt-10 text-center">
+        {/* Bottom link */}
+        <div className="mt-8 text-center">
           <p className="text-slate-500 text-sm mb-3">Vous ne trouvez pas ce que vous cherchez ?</p>
           <Link to="/catalogue" className="btn-primary">
             Parcourir tout le catalogue
-            <ChevronRight size={16} />
+            <ChevronRight size={15} />
           </Link>
         </div>
       </div>
